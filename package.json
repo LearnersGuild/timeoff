@@ -1,0 +1,30 @@
+{
+  "name": "timeoff",
+  "version": "1.0.0",
+  "description": "App for coaches to report their time-off",
+  "scripts": {
+    "start": "node src/server/server.js",
+    "start:dev": "NODE_ENV=development nodemon src/server/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LearnersGuild/timeoff.git"
+  },
+  "author": "@SomayaB, @danisyellis, @breyana",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LearnersGuild/timeoff/issues"
+  },
+  "homepage": "https://github.com/LearnersGuild/timeoff#readme",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "dotenv": "^4.0.0",
+    "express": "^4.16.2",
+    "immutable": "^3.8.2",
+    "pg-promise": "^7.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.12.1"
+  }
+}
