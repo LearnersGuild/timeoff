@@ -6,7 +6,8 @@
     "start": "node src/server/server.js",
     "start:dev": "NODE_ENV=development nodemon src/server/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "db:create": "createdb timeoff_development"
+    "db:create": "createdb timeoff_development",
+    "db:migrate": "db-migrate up --config src/config/db-migrate.json -e"
   },
   "repository": {
     "type": "git",
