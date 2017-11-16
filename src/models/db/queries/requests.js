@@ -3,12 +3,12 @@ const db = require("../index");
 const add = (newRequest) => {
   return db.oneOrNone(`
     INSERT INTO
-      requests (username, type_of_timeoff, date_off, time_start, time_end)
+      timeoff_requests (username, type_of_timeoff, date_off, time_start, time_end)
     VALUES
-      ($1, $2, $3, $4, $5)
+      (${username}, ${typeOfTimeoff}, ${dateOff}, ${timeStart}, ${timeEnd})
     RETURNING
       *
-    `, [ newRequest.username, newRequest.typeOfTimeoff, newRequest.dateOff, newRequest.timeStart, newRequest.timeEnd ])
+    `, newRequest)
   .catch(error => {
     console.error(error.message);
     throw error;
