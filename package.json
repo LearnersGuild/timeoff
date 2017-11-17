@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node src/server/server.js",
     "start:dev": "NODE_ENV=development nodemon src/server/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:create": "createdb timeoff_development",
+    "db:migrate": "db-migrate up --config src/config/db-migrate.json -e"
   },
   "repository": {
     "type": "git",
@@ -19,6 +21,8 @@
   "homepage": "https://github.com/LearnersGuild/timeoff#readme",
   "dependencies": {
     "body-parser": "^1.18.2",
+    "db-migrate": "^0.10.0-beta.24",
+    "db-migrate-pg": "^0.2.5",
     "dotenv": "^4.0.0",
     "express": "^4.16.2",
     "immutable": "^3.8.2",

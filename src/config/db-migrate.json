@@ -1,0 +1,17 @@
+{
+  "production": {
+    "driver": "pg",
+    "user": {"ENV": "DB_USER"},
+    "password": {"ENV": "DB_PASSWORD"},
+    "database": {"ENV": "DB_NAME"},
+    "port": {"ENV": "DB_PORT"}
+  },
+
+  "development": {
+    "driver": "pg",
+    "database": "timeoff_development",
+    "port": "5432"
+  },
+
+  "sql-file": true
+}
