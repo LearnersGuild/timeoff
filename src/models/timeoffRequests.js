@@ -1,4 +1,4 @@
-const db = require('./db/queries/timeoffRequests');
+const db = require('./db/timeoffRequests');
 
 module.exports = {
   add: db.add
