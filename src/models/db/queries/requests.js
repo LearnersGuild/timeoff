@@ -1,7 +1,7 @@
 const db = require("../index");
 
 const add = (newRequest) => {
-  return db.oneOrNone(`
+  return db.one(`
     INSERT INTO
       timeoff_requests (username, type_of_timeoff, date_off, time_start, time_end)
     VALUES
