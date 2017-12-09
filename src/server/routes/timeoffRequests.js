@@ -7,13 +7,14 @@ router.post('/', (request, response) => {
   const userID = request.body.user_id;
   let message = {
     "response_type": "ephemeral",
-    "text": "Your timeoff request was recorded!",
+    "text": null,
     "attachments": [
       {
         "text": `Your entry was: "${timeoffRequest}"`
       }
     ]
   };
+
   /* EXAMPLE BODY */
   // { token: 'ifVkOH3RGkzllGo64zWgjyBZ',
   // team_id: 'T3ZNAQTAP',
@@ -31,8 +32,9 @@ router.post('/', (request, response) => {
   const requestType = requestArray.shift();
 
   if (!validateType(requestType)) {
-    message.text = "Make sure your first word is the type of entry: sick, vacation, or overtime"
+    message.text = "Make sure your first word is the type of entry: sick, vacation, or overtime";
   } else {
+    let databaseEntries = [];
     checkAllEntries:
     for (let i = 0; i < requestArray.length; i++) {
       if (i % 2 === 0) {
@@ -41,47 +43,39 @@ router.post('/', (request, response) => {
           break checkAllEntries;
         }
       } else {
-        const timeEntries = requestArray[i].split('-' || ' - ')
+        const timeEntries = requestArray[i].split('-')
         if (!validateTime(timeEntries[0]) || !validateTime(timeEntries[1])) {
           message.text = "Double check the time formats: hh:mm";
           break checkAllEntries;
         }
+        const databaseEntry = {
+          username: userID,
+          type_of_timeoff: requestType,
+          date_off: requestArray[i-1],
+          time_start: timeEntries[0],
+          time_end: timeEntries[1]
+        }
+        databaseEntries.push(databaseEntry);
       }
     }
+    if (databaseEntries === [] && !message.text) {
+      message.text = "Please add days and times";
+      response.json(message);
+    } else if (message.text) {
+      response.json(message);
+    } else {
+      TimeoffRequests.add(databaseEntries)
+        .then(result => {
+          message.text = "Your timeoff request was recorded!";
+          response.json(message);
+        })
+        .catch(error => {
+          console.error(error);
+          message.text = `An error occurred on database entry: ${error.message}`;
+          response.json(message);
+        })
+    }
   }
-
-  response.json(message);
 });
-
-
-//real route. Not functional until db is created.
-// router.post('/', (request, response) => {
-//   const timeoffRequest = request.body.text;
-//   console.log(timeoffRequest);
-//
-//   const newRequest = {
-//     username,
-//     typeOfTimeoff,
-//     dateOff,
-//     timeStart,
-//     timeEnd
-//   }
-//
-//   let message = {
-//     "response_type": "ephemeral",
-//     "text": "Your timeoff request was recorded!",
-//     "attachments": [
-//       {
-//         "text": timeoffRequest
-//       }
-//     ]
-//   };
-//
-// TimeoffRequests.add(newRequest)
-// .then(result => {
-//   response.json(message);
-// })
-// .catch(error => response.json({error: error.message}));
-// });
 
 module.exports = router;
