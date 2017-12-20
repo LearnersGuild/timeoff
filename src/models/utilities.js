@@ -1,4 +1,4 @@
-const TimeoffRequests = require('./timeoffRequests');
+const timeoffRequestsDB = require('./timeoffRequests');
 
 const validateDate = (inputDate) => {
   const dateFormat = /^(19|20)\d\d(-)(0[1-9]|1[012])\2(0[1-9]|[12][0-9]|3[01])$/;
@@ -59,7 +59,84 @@ const validateType = (inputType) => {
   }
 }
 
-const processTimeoffRequest = (request) => {
+const buildSlackMessage = (outgoingMessageText, incomingMessageText) => {
+  return {
+    "response_type": "ephemeral",
+    "text": outgoingMessageText,
+    "attachments": [
+      {
+        "text": `Your entry was: "${incomingMessageText}"`
+      }
+    ]
+  };
+}
+
+const extractTimeOffRequestsFromSlackMessage = (request) => {
+  const requestText = request.text;
+  const userID = request.user_id;
+
+  const requestArray = requestText.split(' ');
+  const requestType = requestArray.shift();
+
+  let timeOffRequests = [];
+  checkAllEntries:
+  for (let i = 0; i < requestArray.length; i++) {
+    if (i % 2 != 0) {
+      const timeEntries = requestArray[i].split('-');
+      const timeOffRequest = {
+        username: userID,
+        type_of_timeoff: requestType,
+        date_off: requestArray[i-1],
+        time_start: timeEntries[0],
+        time_end: timeEntries[1]
+      }
+      timeOffRequests.push(timeOffRequest);
+    }
+  }
+  return timeOffRequests;
+}
+
+const validateTimeOffRequests = (timeOffRequests) => {
+  let output = true;
+
+  if (!timeOffRequests[0]) {
+    output = "Please add dates and times"
+    return output;
+  }
+
+  if ( !validateType(timeOffRequests[0].type_of_timeoff) ) {
+    output = "Make sure your first word is the type of entry: sick, vacation, or overtime";
+    return output;
+  }
+
+  for (let i = 0; i < timeOffRequests.length; i++) {
+    if ( !validateDate(timeOffRequests[i].date_off) ) {
+      output = "Double check the date format on your entry or entries: yyyy-mm-dd";
+      return output;
+    } else if ( !validateTime(timeOffRequests[i].time_start)
+                || !validateTime(timeOffRequests[i].time_end) ) {
+      output = "Double check the time formats: hh:mm";
+      return output;
+    }
+  }
+
+  return output;
+}
+
+const insertTimeOffRequestsToDB = (timeOffRequests) => {
+  return timeoffRequestsDB.add(timeOffRequests)
+    .then(result => {
+      return "Your timeoff request was recorded!";
+    })
+    .catch(error => {
+      console.error(error);
+      const errorMessage = `An error occurred on database entry: ${error.message}`;
+      error.slackMessageText = errorMessage
+      throw error;
+    })
+}
+
+const processTimeOffRequest = (request) => {
   /* EXAMPLE REQUEST */
   // { token: 'ifVkOH3RGkzllGo64zWgjyBZ',
   // team_id: 'T3ZNAQTAP',
@@ -69,71 +146,27 @@ const processTimeoffRequest = (request) => {
   // user_id: 'U4Y1L7RB9',
   // user_name: 'breyana',
   // command: '/timeoff',
-  // text: 'this is a message',
+  // text: 'vacation 2017-12-25 08:00-16:00',
   // response_url: 'https://hooks.slack.com/commands/T3ZNAQTAP/283341594723/oMoIJgwuODf67Mt48NSZiu9q',
   // trigger_id: '283457877556.135758843363.921f83381be87b9cc374b986db5ef31b' }
-  const timeoffRequest = request.text;
-  const userID = request.user_id;
-  let message = {
-    "response_type": "ephemeral",
-    "text": null,
-    "attachments": [
-      {
-        "text": `Your entry was: "${timeoffRequest}"`
-      }
-    ]
-  };
 
-  let requestArray = timeoffRequest.split(' ');
-  const requestType = requestArray.shift();
+  const incomingMessageText = request.text;
+  const timeOffRequests = extractTimeOffRequestsFromSlackMessage(request);
+  let validationError = validateTimeOffRequests(timeOffRequests);
 
-  if (!validateType(requestType)) {
-    message.text = "Make sure your first word is the type of entry: sick, vacation, or overtime";
+  if(typeof validationError == 'string') {
+    return Promise.resolve(buildSlackMessage(validationError, incomingMessageText)); // todo maybe we need to send an error message via slack?
   } else {
-    let databaseEntries = [];
-    checkAllEntries:
-    for (let i = 0; i < requestArray.length; i++) {
-      if (i % 2 === 0) {
-        if (!validateDate(requestArray[i])) {
-          message.text = "Double check the date format on your entry or entries: yyyy-mm-dd";
-          break checkAllEntries;
-        }
-      } else {
-        const timeEntries = requestArray[i].split('-')
-        if (!validateTime(timeEntries[0]) || !validateTime(timeEntries[1])) {
-          message.text = "Double check the time formats: hh:mm";
-          break checkAllEntries;
-        }
-        const databaseEntry = {
-          username: userID,
-          type_of_timeoff: requestType,
-          date_off: requestArray[i-1],
-          time_start: timeEntries[0],
-          time_end: timeEntries[1]
-        }
-        databaseEntries.push(databaseEntry);
-      }
-    }
-    if (databaseEntries === [] && !message.text) {
-      message.text = "Please add days and times";
-      return message;
-    } else if (message.text) {
-      return message;
-    } else {
-      TimeoffRequests.add(databaseEntries)
-        .then(result => {
-          message.text = "Your timeoff request was recorded!";
-          return message;
-        })
-        .catch(error => {
-          console.error(error);
-          message.text = `An error occurred on database entry: ${error.message}`;
-          return message;
-        })
-    }
+    return insertTimeOffRequestsToDB(timeOffRequests)
+      .then(databaseEntryResponse => {
+        return buildSlackMessage(databaseEntryResponse, incomingMessageText);
+      })
+      .catch(error => {
+        return buildSlackMessage(error.slackMessageText, incomingMessageText)
+      })
   }
 }
 
 module.exports = {
-  processTimeoffRequest
+  processTimeOffRequest
 };
